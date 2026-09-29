@@ -1,0 +1,4 @@
+body { width: 260px; margin: 0; padding: 20px; background: #fffdf7; color: #282820; font: 14px/1.55 system-ui, sans-serif; }
+h1 { margin: 0 0 12px; font-size: 18px; }
+p { margin: 0 0 12px; }
+.muted { color: #6a665b; font-size: 12px; margin-bottom: 0; }

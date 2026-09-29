@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Stabilo browser smoke test</title>
+<style>::highlight(stabilo-selection) { background: #ffe27a; }</style>
+<p id="article">An unfamiliar <strong>expression</strong> becomes clearer with context.</p>
+<textarea id="editable">Do not highlight this field.</textarea>
+<pre id="results">Running…</pre>
+<script src="../content.js"></script>
+<script src="../content.js"></script>
+<script>
+(async () => {
+  const results = document.getElementById('results');
+  const passed = [];
+  function check(condition, label) {
+    if (!condition) throw new Error(label);
+    passed.push(label);
+  }
+  const tick = () => new Promise(resolve => setTimeout(resolve, 20));
+  try {
+    const hosts = [...document.querySelectorAll('div')].filter(el => el.shadowRoot);
+    check(hosts.length === 1, 'Repeated activation has one UI');
+    const ui = hosts[0].shadowRoot;
+    const article = document.getElementById('article');
+    const original = article.innerHTML;
+    const range = document.createRange();
+    range.setStart(article.firstChild, 3);
+    range.setEnd(article.lastChild, 15);
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    article.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    await tick();
+    check(!ui.getElementById('selection').hidden, 'Selection offers a highlight');
+    ui.getElementById('highlight').click();
+    const paint = CSS.highlights.get('stabilo-selection');
+    check(paint.size === 1, 'Cross-element range is highlighted');
+    check(article.innerHTML === original, 'Article markup remains unchanged');
+
+    function openNote() {
+      const rect = [...paint][0].getClientRects()[0];
+      article.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rect.left + 2, clientY: rect.top + 2 }));
+    }
+    openNote();
+    check(!ui.getElementById('editor').hidden, 'Clicking a highlight opens the note');
+    const note = ui.getElementById('note');
+    note.value = 'A simpler explanation <script> stays plain text';
+    note.dispatchEvent(new Event('input'));
+    ui.getElementById('done').click();
+    openNote();
+    check(note.value === 'A simpler explanation <script> stays plain text', 'Note survives closing and reopening');
+    ui.getElementById('remove').click();
+    check(paint.size === 0, 'Removing a highlight clears its range');
+    check(article.innerHTML === original, 'Removal preserves article markup');
+
+    const editable = document.getElementById('editable');
+    editable.focus();
+    editable.select();
+    editable.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    await tick();
+    check(ui.getElementById('selection').hidden, 'Editable text does not offer highlighting');
+    results.textContent = 'PASS: ' + passed.join('\nPASS: ');
+    document.title = 'PASS';
+  } catch (error) {
+    results.textContent = 'FAIL: ' + error.message + '\n' + passed.join('\n');
+    document.title = 'FAIL';
+  }
+})();
+</script>
