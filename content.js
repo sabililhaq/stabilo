@@ -32,14 +32,15 @@
       textarea { display:block; width:100%; min-height:90px; resize:vertical; font:inherit; padding:8px; border:1px solid #bdb7a5; border-radius:6px; background:white; color:#282820; }
       .hint { font-size:11px; color:#706b5f; margin:6px 0 10px; }
       .actions { display:flex; justify-content:space-between; gap:8px; }
-      .remove { background:transparent; color:#9c3025; }
+      .remove { display:grid; place-items:center; width:32px; height:32px; padding:6px; background:transparent; color:#9c3025; }
+      .remove svg { width:20px; height:20px; pointer-events:none; }
     </style>
     <div class="panel" id="selection" hidden><button type="button" id="highlight" aria-label="Highlight selection" title="Highlight selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 3 7 7-9 9-7-7Z"/><path d="m5 12-2 5 4 4 5-2M3 21h6"/></svg></button></div>
     <div class="panel editor" id="editor" role="dialog" aria-label="Highlight note" hidden>
-      <label for="note">Note <span style="font-weight:400">(optional)</span></label>
-      <textarea id="note" placeholder="What does this passage mean to you?"></textarea>
+      <label for="note">Note</label>
+      <textarea id="note" placeholder="Add a note…"></textarea>
       <p class="hint">Saved for this page session. Lost on reload.</p>
-      <div class="actions"><button type="button" class="remove" id="remove">Remove highlight</button><button type="button" id="done">Done</button></div>
+      <div class="actions"><button type="button" class="remove" id="remove" aria-label="Remove highlight" title="Remove highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 3 7 7-11 11H6l-4-4Z"/><path d="m8 11 7 7M10 21h11"/></svg></button><button type="button" id="done">Done</button></div>
     </div>`;
   document.documentElement.append(host);
   const selectionPanel = shadow.getElementById('selection');
