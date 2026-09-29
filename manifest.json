@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Stabilo",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Highlight a passage, add a simple note, and keep reading. Temporary, local, and distraction-free.",
   "minimum_chrome_version": "105",
   "action": {

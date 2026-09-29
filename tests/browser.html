@@ -84,9 +84,57 @@
     pressMarker();
     check(paint.size === 0, 'Selecting a word inside a highlight removes the whole highlight');
 
+    function key(target, key, extra = {}) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true, ...extra });
+      target.dispatchEvent(event);
+      return event;
+    }
+    await selectPassage(range.cloneRange());
+    key(article, 'Tab');
+    check(ui.activeElement === ui.getElementById('highlight'), 'Tab reaches the selection control');
+    ui.getElementById('highlight').click();
+    check(paint.size === 1 && document.activeElement === article, 'Highlight activation restores reading focus');
+    check(ui.getElementById('status').textContent.includes('added'), 'Highlight creation has a live announcement');
+    key(article, 'N', { code: 'KeyN', altKey: true, shiftKey: true });
+    check(ui.activeElement === note, 'Keyboard shortcut opens an existing note');
+    check(ui.getElementById('quote').textContent.includes('expression'), 'Note dialog describes the highlighted passage');
+    check(ui.getElementById('remove').getBoundingClientRect().width >= 24 && ui.getElementById('remove').getBoundingClientRect().height >= 24, 'Eraser keeps a minimum 24px target');
+    check(getComputedStyle(ui.getElementById('selection')).overflow !== 'hidden', 'Marker focus outline is not clipped');
+    if (matchMedia('(forced-colors: active)').matches) {
+      check(getComputedStyle(ui.getElementById('remove')).borderTopStyle === 'solid', 'High contrast retains a visible control border');
+    }
+    check(note.getAttribute('aria-describedby') === 'note-hint', 'Note is linked to its lifetime description');
+    key(note, 'Escape');
+    check(ui.getElementById('editor').hidden && document.activeElement === article, 'Escape closes the editor and restores focus');
+    key(article, 'N', { code: 'KeyN', altKey: true, shiftKey: true });
+    ui.getElementById('remove').focus();
+    ui.getElementById('remove').click();
+    check(paint.size === 0 && document.activeElement === article, 'Removal returns keyboard focus to the article');
+    check(ui.getElementById('status').textContent.includes('removed'), 'Removal has a live announcement');
+    await selectPassage(range.cloneRange());
+    key(article, 'H', { code: 'KeyH', altKey: true, shiftKey: true });
+    check(paint.size === 1, 'Highlight shortcut adds a highlight');
+    key(article, 'N', { code: 'KeyN', altKey: true, shiftKey: true });
+    note.value = 'Keep this note';
+    note.dispatchEvent(new Event('input'));
+    document.getElementById('editable').focus();
+    await tick();
+    check(ui.getElementById('editor').hidden, 'Moving focus outside dismisses the non-modal editor');
+    article.focus();
+    key(article, 'N', { code: 'KeyN', altKey: true, shiftKey: true });
+    check(note.value === 'Keep this note', 'Leaving the editor preserves the note');
+    check(!key(note, 'Tab').defaultPrevented, 'Editor does not trap Tab');
+    key(note, 'Escape');
+    await selectPassage(range.cloneRange());
+    key(article, 'H', { code: 'KeyH', altKey: true, shiftKey: true });
+    check(paint.size === 0, 'Highlight shortcut removes an existing highlight');
+    key(article, 'N', { code: 'KeyN', altKey: true, shiftKey: true });
+    check(ui.getElementById('status').textContent.includes('No highlights'), 'Empty highlight navigation is announced');
+
     const editable = document.getElementById('editable');
     editable.focus();
     editable.select();
+    check(!key(editable, 'H', { code: 'KeyH', altKey: true, shiftKey: true }).defaultPrevented, 'Shortcuts do not intercept typing in fields');
     editable.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
     await tick();
     check(ui.getElementById('selection').hidden, 'Editable text does not offer highlighting');

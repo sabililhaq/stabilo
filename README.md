@@ -24,6 +24,10 @@ Allow site access for Stabilo to run automatically. You can restrict access to s
 
 No account, backend, or build step. Everything stays in your browser.
 
+## Keyboard
+
+Select text (Shift + arrow keys, or browser caret browsing), then press Tab and Enter to highlight or erase. You can also use **Alt+Shift+H**. Press **Alt+Shift+N** to cycle through existing highlight notes. Close a note before using the shortcut again. Escape or Done returns focus to the article; Tab can leave the note editor. Shortcuts do not run in editable fields.
+
 ## TODO
 
 - Save highlights and notes locally with `chrome.storage.local`.
@@ -32,3 +36,5 @@ No account, backend, or build step. Everything stays in your browser.
 ## Development
 
 Open `tests/browser.html` in Chrome to run the interaction smoke test. Run `python3 package.py` to create a ZIP in `dist/`.
+
+Accessibility checks cover keyboard handlers, focus restoration, descriptions, and live-region updates in Chrome. Manual VoiceOver/NVDA verification is still pending.

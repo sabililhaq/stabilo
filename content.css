@@ -2,3 +2,11 @@
   background-color: #ffe27a;
   color: #242018;
 }
+
+@media (forced-colors: active) {
+  ::highlight(stabilo-selection) {
+    background-color: Highlight;
+    color: HighlightText;
+    text-decoration: underline;
+  }
+}
