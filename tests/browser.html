@@ -31,11 +31,14 @@
     article.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
     await tick();
     check(!ui.getElementById('selection').hidden, 'Selection offers a highlight');
+    check(ui.getElementById('highlight').getBoundingClientRect().width === 30, 'Marker control is compact');
+    check(ui.getElementById('highlight').getAttribute('aria-label') === 'Highlight selection', 'Marker has an accessible label');
     ui.getElementById('highlight').click();
     const paint = CSS.highlights.get('stabilo-selection');
     check(paint.size === 1, 'Cross-element range is highlighted');
     check(article.innerHTML === original, 'Article markup remains unchanged');
 
+    article.addEventListener('click', event => event.stopPropagation());
     function openNote() {
       const rect = [...paint][0].getClientRects()[0];
       article.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rect.left + 2, clientY: rect.top + 2 }));
@@ -51,6 +54,35 @@
     ui.getElementById('remove').click();
     check(paint.size === 0, 'Removing a highlight clears its range');
     check(article.innerHTML === original, 'Removal preserves article markup');
+
+    // Realistic pointer sequence, including events crossing the shadow boundary.
+    async function selectPassage(candidate) {
+      article.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      selection.removeAllRanges();
+      selection.addRange(candidate);
+      article.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+      await tick();
+    }
+    function pressMarker() {
+      const button = ui.getElementById('highlight');
+      button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true, cancelable: true }));
+      button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, composed: true }));
+      button.click();
+    }
+    await selectPassage(range.cloneRange());
+    pressMarker();
+    check(paint.size === 1, 'Pointer interaction creates a highlight');
+    await selectPassage(range.cloneRange());
+    check(ui.getElementById('highlight').getAttribute('aria-label') === 'Remove highlight', 'Reselecting offers an eraser');
+    pressMarker();
+    check(paint.size === 0, 'Reselecting removes instead of stacking highlights');
+    await selectPassage(range.cloneRange());
+    pressMarker();
+    const word = document.createRange();
+    word.selectNodeContents(article.querySelector('strong'));
+    await selectPassage(word);
+    pressMarker();
+    check(paint.size === 0, 'Selecting a word inside a highlight removes the whole highlight');
 
     const editable = document.getElementById('editable');
     editable.focus();
