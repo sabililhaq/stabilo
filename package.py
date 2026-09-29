@@ -8,6 +8,6 @@ version = json.loads((root / "manifest.json").read_text())["version"]
 output = root / "dist" / f"stabilo-{version}.zip"
 output.parent.mkdir(exist_ok=True)
 with ZipFile(output, "w", ZIP_DEFLATED) as archive:
-    for name in ["manifest.json", "popup.html", "popup.css", "popup.js", "content.js", "README.md", "package.py"]:
+    for name in ["manifest.json", "popup.html", "popup.css", "content.js", "content.css", "README.md", "package.py"]:
         archive.write(root / name, name)
 print(output)
