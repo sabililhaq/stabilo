@@ -31,7 +31,7 @@
     article.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
     await tick();
     check(!ui.getElementById('selection').hidden, 'Selection offers a highlight');
-    check(ui.getElementById('highlight').getBoundingClientRect().width === 30, 'Marker control is compact');
+    check(ui.getElementById('highlight').getBoundingClientRect().width === 32, 'Marker control is compact');
     check(ui.getElementById('highlight').getAttribute('aria-label') === 'Highlight selection', 'Marker has an accessible label');
     ui.getElementById('highlight').click();
     const paint = CSS.highlights.get('stabilo-selection');

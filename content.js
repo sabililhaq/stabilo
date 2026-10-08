@@ -23,34 +23,40 @@
     <style>
       :host { color-scheme: light; }
       * { box-sizing: border-box; }
+      button, textarea { margin:0; }
       [hidden] { display: none !important; }
       .panel { position:fixed; padding:8px; border:1px solid #ded9c9; border-radius:10px; background:#fffdf7; color:#282820; box-shadow:0 4px 20px #0002; font:14px/1.5 system-ui,sans-serif; max-width:calc(100vw - 16px); }
       button { font:inherit; cursor:pointer; border:0; border-radius:6px; padding:7px 11px; background:#ffe27a; color:#282820; }
       button:focus-visible, textarea:focus-visible { outline:2px solid #786000; outline-offset:2px; }
-      #selection { padding:0; border-radius:7px; overflow:visible; }
-      #highlight { display:grid; place-items:center; width:30px; height:30px; padding:5px; border-radius:0; }
-      #highlight svg { width:20px; height:20px; pointer-events:none; }
-      #highlight[data-remove="true"] { background:#fff0db; }
+      button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:32px; line-height:1; }
+      button:hover { background:#f5d45f; }
+      button:active { background:#ebc64a; }
+      button svg { display:block; flex:none; width:18px; height:18px; pointer-events:none; }
+      #selection { padding:3px; border-radius:10px; overflow:visible; }
+      #highlight { width:32px; height:32px; padding:7px; border-radius:6px; }
+      #highlight[data-remove="true"] { background:#fff0db; color:#9c3025; }
+      #highlight[data-remove="true"]:hover { background:#ffe0cd; }
       .editor { width:290px; max-height:calc(100dvh - 16px); overflow:auto; }
-      label { display:block; font-weight:600; margin-bottom:6px; }
+      .editor-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+      label { display:block; font-weight:600; margin:0 0 6px; }
       textarea { display:block; width:100%; min-height:90px; resize:vertical; font:inherit; padding:8px; border:1px solid #817b6c; border-radius:6px; background:white; color:#282820; }
-      .hint { font-size:11px; color:#706b5f; margin:6px 0 10px; }
-      .actions { display:flex; justify-content:space-between; gap:8px; }
-      .remove { display:grid; place-items:center; width:32px; height:32px; padding:6px; background:transparent; color:#9c3025; }
+      .hint { font-size:11px; color:#706b5f; margin:6px 0 0; }
+      .remove { padding:7px 8px; background:#fff0e9; color:#9c3025; }
+      .remove:hover { background:#ffe0d3; }
+      .remove:active { background:#ffd0bd; }
       .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
       @media (forced-colors: active) {
         .panel, button, textarea { border:1px solid ButtonText; }
         button:focus-visible, textarea:focus-visible { outline:2px solid Highlight; }
       }
-      .remove svg { width:20px; height:20px; pointer-events:none; }
     </style>
     <div class="panel" id="selection" hidden><button type="button" id="highlight" aria-keyshortcuts="Alt+Shift+H" aria-label="Highlight selection" title="Highlight selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 3 7 7-9 9-7-7Z"/><path d="m5 12-2 5 4 4 5-2M3 21h6"/></svg></button></div>
     <div class="panel editor" id="editor" role="dialog" aria-label="Highlight note" aria-describedby="quote" hidden>
       <p class="sr-only" id="quote"></p>
+      <div class="editor-toolbar"><button type="button" class="remove" id="remove" aria-label="Remove highlight" title="Remove highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 3 7 7-11 11H6l-4-4Z"/><path d="m8 11 7 7M10 21h11"/></svg><span>Remove</span></button><button type="button" id="done">Done</button></div>
       <label for="note">Note</label>
       <textarea id="note" aria-describedby="note-hint" placeholder="Add a note…"></textarea>
       <p class="hint" id="note-hint">Saved for this page session. Lost on reload.</p>
-      <div class="actions"><button type="button" class="remove" id="remove" aria-label="Remove highlight" title="Remove highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 3 7 7-11 11H6l-4-4Z"/><path d="m8 11 7 7M10 21h11"/></svg></button><button type="button" id="done">Done</button></div>
     </div>
     <div class="sr-only" id="status" role="status" aria-live="polite" aria-atomic="true"></div>`;
   document.documentElement.append(host);
@@ -107,7 +113,9 @@
     const width = panel.offsetWidth;
     const height = panel.offsetHeight;
     panel.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - width - 8))}px`;
-    panel.style.top = `${Math.max(8, Math.min(rect.bottom + 8, innerHeight - height - 8))}px`;
+    const below = rect.bottom + 6;
+    const top = below + height <= innerHeight - 8 ? below : rect.top - height - 6;
+    panel.style.top = `${Math.max(8, Math.min(top, innerHeight - height - 8))}px`;
   }
 
   function editable(node) {
@@ -152,7 +160,13 @@
       : '<path d="m14 3 7 7-9 9-7-7Z"/><path d="m5 12-2 5 4 4 5-2M3 21h6"/>';
     if (pendingRange) {
       rememberFocus(pendingRange);
-      position(selectionPanel, pendingRange.getBoundingClientRect());
+      // Follow the selection's focus end, including selections dragged backwards.
+      const selection = window.getSelection();
+      const endpoint = pendingRange.cloneRange();
+      endpoint.setStart(selection.focusNode, selection.focusOffset);
+      endpoint.collapse(true);
+      const rect = [...endpoint.getClientRects()].find(box => box.height > 0);
+      position(selectionPanel, rect || pendingRange.getBoundingClientRect());
     }
   }
 
@@ -248,7 +262,7 @@
       if (!rect) continue;
       event.preventDefault();
       event.stopPropagation();
-      openEditor(entry, rect);
+      openEditor(entry, { left: event.clientX, top: rect.top, bottom: rect.bottom });
       break;
     }
   }, true);
