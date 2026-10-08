@@ -55,6 +55,25 @@
     check(paint.size === 0, 'Removing a highlight clears its range');
     check(article.innerHTML === original, 'Removal preserves article markup');
 
+    check(!ui.getElementById('undo-panel').hidden, 'Removal offers undo');
+    key(article, 'Tab');
+    check(ui.activeElement === ui.getElementById('undo'), 'Tab reaches undo');
+    ui.getElementById('undo').click();
+    check(paint.size === 1 && ui.getElementById('undo-panel').hidden, 'Undo restores the highlight once');
+    openNote();
+    check(note.value === 'A simpler explanation <script> stays plain text', 'Undo preserves the note');
+    note.dispatchEvent(new Event('scroll', { composed: true }));
+    check(!ui.getElementById('editor').hidden, 'Scrolling inside the editor keeps it open');
+    article.style.transform = 'translateY(20px)';
+    article.dispatchEvent(new Event('scroll'));
+    check(ui.getElementById('editor').hidden, 'Page movement closes the editor');
+    article.style.transform = '';
+    openNote();
+    check(note.value === 'A simpler explanation <script> stays plain text', 'Scroll dismissal preserves the note');
+    ui.getElementById('remove').click();
+    key(article, 'Escape');
+    check(ui.getElementById('undo-panel').hidden && paint.size === 0, 'Escape dismisses undo without restoring');
+
     // Realistic pointer sequence, including events crossing the shadow boundary.
     async function selectPassage(candidate) {
       article.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));

@@ -14,6 +14,8 @@
   let returnFocus = null;
   let readingRange = null;
   let lastVisited = null;
+  let removedEntry = null;
+  let editorAnchor = null;
 
   const host = document.createElement('div');
   host.lang = 'en';
@@ -44,6 +46,7 @@
       .remove { padding:7px 8px; background:#fff0e9; color:#9c3025; }
       .remove:hover { background:#ffe0d3; }
       .remove:active { background:#ffd0bd; }
+      #undo-panel { display:flex; align-items:center; gap:12px; left:16px; bottom:16px; }
       .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
       @media (forced-colors: active) {
         .panel, button, textarea { border:1px solid ButtonText; }
@@ -58,12 +61,15 @@
       <textarea id="note" aria-describedby="note-hint" placeholder="Add a note…"></textarea>
       <p class="hint" id="note-hint">Saved for this page session. Lost on reload.</p>
     </div>
+    <div class="panel" id="undo-panel" hidden><span>Highlight removed</span><button type="button" id="undo">Undo</button></div>
     <div class="sr-only" id="status" role="status" aria-live="polite" aria-atomic="true"></div>`;
   document.documentElement.append(host);
   const selectionPanel = shadow.getElementById('selection');
   const editor = shadow.getElementById('editor');
   const note = shadow.getElementById('note');
   const highlightButton = shadow.getElementById('highlight');
+  const undoPanel = shadow.getElementById('undo-panel');
+  const undoButton = shadow.getElementById('undo');
 
   function announce(message) {
     shadow.getElementById('status').textContent = message;
@@ -98,7 +104,9 @@
   }
 
   function openEditor(entry, rect = entry.range.getBoundingClientRect()) {
+    dismissUndo();
     rememberFocus(entry.range);
+    editorAnchor = entry.range.getBoundingClientRect();
     lastVisited = entry;
     activeEntry = entry;
     selectionPanel.hidden = true;
@@ -143,8 +151,29 @@
   function removeEntry(entry) {
     paint.delete(entry.range);
     entries.delete(entry.range);
-    announce('Highlight removed.');
+    removedEntry = entry;
+    undoPanel.hidden = false;
+    announce('Highlight removed. Press Tab to undo.');
   }
+
+  function dismissUndo() {
+    const focused = shadow.activeElement === undoButton;
+    undoPanel.hidden = true;
+    removedEntry = null;
+    if (focused) restoreFocus();
+  }
+
+  undoButton.addEventListener('click', () => {
+    const entry = removedEntry;
+    if (!entry) return;
+    const valid = !entry.range.collapsed && entry.range.startContainer.isConnected && entry.range.endContainer.isConnected;
+    if (valid) {
+      entries.set(entry.range, entry);
+      paint.add(entry.range);
+    }
+    dismissUndo();
+    announce(valid ? 'Highlight restored.' : 'This text is no longer available.');
+  });
 
   function offerSelection() {
     if (!editor.hidden) return;
@@ -177,6 +206,7 @@
     if (selectedEntry) {
       removeEntry(selectedEntry);
     } else {
+      dismissUndo();
       const entry = { range: pendingRange, note: '' };
       entries.set(entry.range, entry);
       paint.add(entry.range);
@@ -212,10 +242,11 @@
   document.addEventListener('keydown', (event) => {
     if (event.isComposing || event.defaultPrevented) return;
     const inside = event.composedPath().includes(host);
-    if (event.key === 'Escape' && (!editor.hidden || !selectionPanel.hidden)) {
+    if (event.key === 'Escape' && (!editor.hidden || !selectionPanel.hidden || !undoPanel.hidden)) {
       event.preventDefault();
       event.stopPropagation();
       close();
+      dismissUndo();
       return;
     }
     if (inside || editable(event.target)) return;
@@ -223,6 +254,12 @@
       event.preventDefault();
       event.stopPropagation();
       highlightButton.focus({ preventScroll: true });
+      return;
+    }
+    if (event.key === 'Tab' && !event.shiftKey && !undoPanel.hidden) {
+      event.preventDefault();
+      event.stopPropagation();
+      undoButton.focus({ preventScroll: true });
       return;
     }
     if (!event.altKey || !event.shiftKey || event.ctrlKey || event.metaKey) return;
@@ -267,7 +304,14 @@
     }
   }, true);
   document.addEventListener('scroll', (event) => {
-    if (!event.composedPath().includes(host) && editor.hidden) close();
+    if (event.composedPath().includes(host)) return;
+    // Ignore a queued scroll event from keyboard navigation that already
+    // positioned the editor at this location.
+    if (activeEntry) {
+      const rect = activeEntry.range.getBoundingClientRect();
+      if (rect.top === editorAnchor.top && rect.left === editorAnchor.left) return;
+    }
+    close();
   }, true);
   window.addEventListener('resize', () => {
     if (activeEntry) position(editor, activeEntry.range.getBoundingClientRect());
