@@ -16,9 +16,9 @@ Existing tools like Web Highlights already do this well. I just want something s
 
 ## Use
 
-Open an article. Stabilo activates automatically—select text and click the small marker icon. Click a highlight to add or edit a note, or remove it. You can also select text within an existing highlight and click the eraser icon to remove that highlight.
+Open an article. Stabilo activates automatically—select text and click the small marker icon below where you released the pointer. Click a highlight to add or edit a note, or remove it. You can also select text within an existing highlight and click the eraser icon to remove that highlight.
 
-After removing a highlight, click **Undo** (or press Tab, then Enter) to restore it and its note. Undo stays available until your next highlight action or Escape. Scrolling the article closes the note editor.
+After removing a highlight, click **Undo** (or press Tab, then Enter) to restore it and its note. Undo stays available for four seconds, or until your next highlight action or Escape. Scrolling the article closes the note editor.
 
 **Highlights and notes are temporary and disappear on reload or when you leave the page.** Regular web pages only; PDFs and browser pages aren't supported.
 

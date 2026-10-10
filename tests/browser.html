@@ -157,6 +157,24 @@
     editable.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
     await tick();
     check(ui.getElementById('selection').hidden, 'Editable text does not offer highlighting');
+
+    editable.blur();
+    selection.removeAllRanges();
+    selection.addRange(range.cloneRange());
+    const line = range.getClientRects()[0];
+    const clickX = line.left + 20;
+    article.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: clickX, clientY: line.top + 5 }));
+    await tick();
+    const marker = ui.getElementById('selection').getBoundingClientRect();
+    check(Math.abs(marker.left + marker.width / 2 - clickX) < 1, 'Marker centered beneath click within selection');
+    check(Math.abs(marker.top - line.bottom - 6) < 1, 'Marker below clicked line');
+    pressMarker();
+    openNote();
+    ui.getElementById('remove').click();
+    check(!ui.getElementById('undo-panel').hidden, 'Undo initially available');
+    await new Promise(resolve => setTimeout(resolve, 4100));
+    check(ui.getElementById('undo-panel').hidden, 'Removal notification disappears after four seconds');
+    check(paint.size === 0, 'Timeout leaves highlight removed');
     results.textContent = 'PASS: ' + passed.join('\nPASS: ');
     document.title = 'PASS';
   } catch (error) {

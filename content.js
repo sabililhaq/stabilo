@@ -15,6 +15,7 @@
   let readingRange = null;
   let lastVisited = null;
   let removedEntry = null;
+  let undoTimer = null;
   let editorAnchor = null;
 
   const host = document.createElement('div');
@@ -149,14 +150,18 @@
   }
 
   function removeEntry(entry) {
+    clearTimeout(undoTimer);
     paint.delete(entry.range);
     entries.delete(entry.range);
     removedEntry = entry;
     undoPanel.hidden = false;
     announce('Highlight removed. Press Tab to undo.');
+    undoTimer = setTimeout(dismissUndo, 4000);
   }
 
   function dismissUndo() {
+    clearTimeout(undoTimer);
+    undoTimer = null;
     const focused = shadow.activeElement === undoButton;
     undoPanel.hidden = true;
     removedEntry = null;
@@ -175,7 +180,7 @@
     announce(valid ? 'Highlight restored.' : 'This text is no longer available.');
   });
 
-  function offerSelection() {
+  function offerSelection(pointer) {
     if (!editor.hidden) return;
     pendingRange = selectedRange();
     selectionPanel.hidden = !pendingRange;
@@ -195,7 +200,11 @@
       endpoint.setStart(selection.focusNode, selection.focusOffset);
       endpoint.collapse(true);
       const rect = [...endpoint.getClientRects()].find(box => box.height > 0);
-      position(selectionPanel, rect || pendingRange.getBoundingClientRect());
+      const clickedLine = pointer && [...pendingRange.getClientRects()].find(box =>
+        pointer.clientY >= box.top && pointer.clientY <= box.bottom);
+      position(selectionPanel, clickedLine
+        ? { left: pointer.clientX - selectionPanel.offsetWidth / 2, top: clickedLine.top, bottom: clickedLine.bottom }
+        : rect || pendingRange.getBoundingClientRect());
     }
   }
 
@@ -230,7 +239,7 @@
   });
 
   document.addEventListener('pointerup', (event) => {
-    if (!event.composedPath().includes(host)) setTimeout(offerSelection, 0);
+    if (!event.composedPath().includes(host)) setTimeout(() => offerSelection(event), 0);
   }, true);
   document.addEventListener('keyup', (event) => {
     if (!event.composedPath().includes(host) && (event.key === 'Shift' || event.key.startsWith('Arrow'))) offerSelection();
